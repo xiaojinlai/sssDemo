@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:jpa="http://www.springframework.org/schema/data/jpa"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context.xsd
+        http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd
+        http://www.springframework.org/schema/data/jpa http://www.springframework.org/schema/data/jpa/spring-jpa.xsd">
+
+    <!-- 引入数据库配置文件 db.properties -->
+    <context:property-placeholder location="classpath:db.properties"/>
+
+    <!-- 使用annotation -->
+    <context:annotation-config/>
+    <!-- 使用annotation自动注册bean,并检查@Controller, @Service, @Repository注解已被注入 -->
+    <context:component-scan base-package="cn.eli.sss.action"/>
+    <context:component-scan base-package="cn.eli.sss.service"/>
+    <context:component-scan base-package="cn.eli.sss.dao"/>
+
+    <!-- data connection setting -->
+    <bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource">
+        <property name="driverClass" value="${db.driverClassName}"></property>
+        <property name="jdbcUrl" value="${db.url}"></property>
+        <property name="user" value="${db.username}"></property>
+        <property name="password" value="${db.password}"></property>
+        <!-- 设置数据库连接池的最大连接数 -->
+        <property name="maxPoolSize">
+            <value>50</value>
+        </property>
+        <!-- 设置数据库连接池的最小连接数 -->
+        <property name="minPoolSize">
+            <value>5</value>
+        </property>
+        <!-- 设置数据库连接池的初始化连接数 -->
+        <property name="initialPoolSize">
+            <value>5</value>
+        </property>
+        <!-- 设置数据库连接池的连接最大空闲时间 -->
+        <property name="maxIdleTime">
+            <value>20</value>
+        </property>
+        <!-- c3p0缓存Statement的数量数 -->
+        <property name="maxStatements">
+            <value>50</value>
+        </property>
+        <!-- 当连接池里面的连接用完的时候,C3P0一下获取新的连接数 -->
+        <property name="acquireIncrement">
+            <value>20</value>
+        </property>
+
+    </bean>
+
+    <!-- springJPA 管理-->
+    <bean id="entityManagerFactory" class="org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean">
+        <property name="dataSource" ref="dataSource"/>
+        <property name="jpaDialect">
+            <bean class="org.springframework.orm.jpa.vendor.HibernateJpaDialect"/>
+        </property>
+        <property name="jpaVendorAdapter" ref="hibernateJpaVendorAdapter"/>
+        <property name="packagesToScan" value="cn.eli.sss.entity"/>
+        <property name="jpaProperties">
+            <props>
+                <prop key="hibernate.dialect">org.hibernate.dialect.Oracle10gDialect</prop>
+                <!--是否显示 SQL-->
+                <prop key="hibernate.show_sql">true</prop>
+                <!--如果显示 SQL，输出的 SQL 时候要格式化-->
+                <prop key="hibernate.format_sql">true</prop>
+                <!--在显示的 SQL 中增加一些 Hibernate 提供的注释说明，依此来解释它生成的 SQL 意思-->
+                <!--配置如何根据java模型生成数据库表结构,常用update,validate-->
+                <prop key="hibernate.use_sql_comments">true</prop>
+                <prop key="hibernate.hbm2ddl.auto">validate</prop>
+                <!--关于这个属性可以看：http://blog.csdn.net/dracotianlong/article/details/27834143-->
+                <!--ImprovedNamingStrategy 是采用下划线，符合我们一般命名表字段的习惯-->
+                <!--所以，命名规则 My_NAME->MyName-->
+                <prop key="hibernate.ejb.naming_strategy">org.hibernate.cfg.ImprovedNamingStrategy</prop>
+            </props>
+        </property>
+    </bean>
+
+    <!-- Hibernate对Jpa的实现 -->
+    <bean id="hibernateJpaVendorAdapter" class="org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter"/>
+    <jpa:repositories base-package="cn.eli.sss.dao" transaction-manager-ref="transactionManager" entity-manager-factory-ref="entityManagerFactory"/>
+
+    <!--配置针对JPA的局部事务管理器-->
+    <bean id="transactionManager" class="org.springframework.orm.jpa.JpaTransactionManager">
+        <property name="entityManagerFactory" ref="entityManagerFactory"/>
+    </bean>
+
+    <tx:annotation-driven transaction-manager="transactionManager" proxy-target-class="true"/>
+</beans>
